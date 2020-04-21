@@ -28,8 +28,40 @@
     socket.on("newPos", (data) => {
       ctx.clearRect(0, 0, 500, 500);
       for (let i = 0; i < data.length; i++) {
-        ctx.fillText(":D", data[i].x, data[i].y);
+        ctx.fillText(data[i].number, data[i].x, data[i].y);
       }
     });
+
+    document.onkeydown = (event) => {
+      switch (event.keyCode) {
+        case 39:
+          socket.emit("keyPress", { input: "right", state: true });
+          break;
+        case 37:
+          socket.emit("keyPress", { input: "left", state: true });
+          break;
+        case 38:
+          socket.emit("keyPress", { input: "up", state: true });
+          break;
+        case 40:
+          socket.emit("keyPress", { input: "down", state: true });
+      }
+    };
+
+    document.onkeyup = (event) => {
+      switch (event.keyCode) {
+        case 39:
+          socket.emit("keyPress", { input: "right", state: false });
+          break;
+        case 37:
+          socket.emit("keyPress", { input: "left", state: false });
+          break;
+        case 38:
+          socket.emit("keyPress", { input: "up", state: false });
+          break;
+        case 40:
+          socket.emit("keyPress", { input: "down", state: false });
+      }
+    };
   </script>
 </html>
