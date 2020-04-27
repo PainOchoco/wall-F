@@ -6,29 +6,75 @@
     <title>Devjam</title>
   </head>
   <body>
-    <p>test</p>
+    <div id="login">
+      Username: <input type="text" id="loginUsername" /> Password:
+      <input type="password" name="" id="loginPassword" />
+      <button id="loginSignIn">Sign in</button>
+      <button id="loginSignUp">Sign up</button>
+    </div>
+    <div id="game" style="display: none;">
+      <canvas
+        id="gameCanvas"
+        width="500"
+        height="500"
+        style="border: 1px solid #000000;"
+      ></canvas>
+    </div>
   </body>
-  <canvas
-    id="gameCanvas"
-    width="500"
-    height="500"
-    style="border: 1px solid #000000;"
-  ></canvas>
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"
     integrity="sha256-bQmrZe4yPnQrLTY+1gYylfNMBuGfnT/HKsCGX+9Xuqo="
     crossorigin="anonymous"
   ></script>
   <script>
+    let socket = io();
+    // Login
+    let login = document.getElementById("login");
+    let loginUsername = document.getElementById("loginUsername");
+    let loginPassword = document.getElementById("loginPassword");
+    let loginSignIn = document.getElementById("loginSignIn");
+    let loginSignUp = document.getElementById("loginSignUp");
+
+    loginSignIn.onclick = () => {
+      socket.emit("signIn", {
+        username: loginUsername.value,
+        password: loginPassword.value,
+      });
+    };
+    socket.on("signInResponse", (data) => {
+      if (data.success) {
+        login.style.display = "none";
+        game.style.display = "inline-block";
+      } else {
+        alert("nope");
+      }
+    });
+
+    loginSignUp.onclick = () => {
+      socket.emit("signUp", {
+        username: loginUsername.value,
+        password: loginPassword.value,
+      });
+    };
+    socket.on("signUpResponse", (data) => {
+      if (data.success) {
+        alert("vous êtes bien inscrit à Wall F");
+      } else {
+        alert("aïe aïe aïe");
+      }
+    });
+
+    // Game
     let ctx = document.getElementById("gameCanvas").getContext("2d");
     ctx.font = "30px Arial";
 
-    let socket = io();
-
     socket.on("newPos", (data) => {
       ctx.clearRect(0, 0, 500, 500);
-      for (let i = 0; i < data.length; i++) {
-        ctx.fillText(data[i].number, data[i].x, data[i].y);
+      for (let i = 0; i < data.player.length; i++) {
+        ctx.fillText(data.player[i].number, data.player[i].x, data.player[i].y);
+      }
+      for (let i = 0; i < data.bullet.length; i++) {
+        ctx.fillRect(data.bullet[i].x - 5, data.bullet[i].y - 5, 10, 10);
       }
     });
 
@@ -62,6 +108,19 @@
         case 40:
           socket.emit("keyPress", { input: "down", state: false });
       }
+    };
+
+    document.onmousedown = (event) => {
+      socket.emit("keyPress", { input: "attack", state: true });
+    };
+    document.onmouseup = (event) => {
+      socket.emit("keyPress", { input: "attack", state: false });
+    };
+    document.onmousemove = (event) => {
+      let x = -250 + event.clientX - 3;
+      let y = -250 + event.clientY - 3;
+      let angle = (Math.atan2(y, x) / Math.PI) * 180;
+      socket.emit("keyPress", { input: "mouseAngle", state: angle });
     };
   </script>
 </html>
