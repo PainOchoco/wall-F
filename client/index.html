@@ -1,126 +1,294 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Devjam</title>
-  </head>
-  <body>
-    <div id="login">
-      Username: <input type="text" id="loginUsername" /> Password:
-      <input type="password" name="" id="loginPassword" />
-      <button id="loginSignIn">Sign in</button>
-      <button id="loginSignUp">Sign up</button>
-    </div>
-    <div id="game" style="display: none;">
-      <canvas
-        id="gameCanvas"
-        width="500"
-        height="500"
-        style="border: 1px solid #000000;"
-      ></canvas>
-    </div>
-  </body>
-  <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"
-    integrity="sha256-bQmrZe4yPnQrLTY+1gYylfNMBuGfnT/HKsCGX+9Xuqo="
-    crossorigin="anonymous"
-  ></script>
-  <script>
-    let socket = io();
-    // Login
-    let login = document.getElementById("login");
-    let loginUsername = document.getElementById("loginUsername");
-    let loginPassword = document.getElementById("loginPassword");
-    let loginSignIn = document.getElementById("loginSignIn");
-    let loginSignUp = document.getElementById("loginSignUp");
+<div id="signDiv">
+  Username: <input id="signDiv-username" type="text" /><br />
+  Password: <input id="signDiv-password" type="password" />
+  <button id="signDiv-signIn">Sign In</button>
+  <button id="signDiv-signUp">Sign Up</button>
+</div>
 
-    loginSignIn.onclick = () => {
-      socket.emit("signIn", {
-        username: loginUsername.value,
-        password: loginPassword.value,
-      });
-    };
-    socket.on("signInResponse", (data) => {
-      if (data.success) {
-        login.style.display = "none";
-        game.style.display = "inline-block";
-      } else {
-        alert("nope");
-      }
+<div id="gameDiv" style="display: none;">
+  <div id="game" style="position: absolute; width: 500px; height: 500px;">
+    <canvas
+      id="ctx"
+      width="500"
+      height="500"
+      style="position: absolute; border: 1px solid #000000;"
+    ></canvas>
+    <canvas
+      id="ctx-ui"
+      width="500"
+      height="500"
+      style="position: absolute; border: 1px solid #000000;"
+    ></canvas>
+  </div>
+</div>
+
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"
+  integrity="sha256-bQmrZe4yPnQrLTY+1gYylfNMBuGfnT/HKsCGX+9Xuqo="
+  crossorigin="anonymous"
+></script>
+
+<script>
+  let WIDTH = 500;
+  let HEIGHT = 500;
+  let socket = io();
+
+  //sign
+  let signDiv = document.getElementById("signDiv");
+  let signDivUsername = document.getElementById("signDiv-username");
+  let signDivSignIn = document.getElementById("signDiv-signIn");
+  let signDivSignUp = document.getElementById("signDiv-signUp");
+  let signDivPassword = document.getElementById("signDiv-password");
+
+  // socket.on("leaderboard", (data) => {
+  //   console.log(data);
+  // });
+
+  signDivSignIn.onclick = function () {
+    socket.emit("signIn", {
+      username: signDivUsername.value,
+      password: signDivPassword.value,
     });
-
-    loginSignUp.onclick = () => {
-      socket.emit("signUp", {
-        username: loginUsername.value,
-        password: loginPassword.value,
-      });
-    };
-    socket.on("signUpResponse", (data) => {
-      if (data.success) {
-        alert("vous êtes bien inscrit à Wall F");
-      } else {
-        alert("aïe aïe aïe");
-      }
+  };
+  signDivSignUp.onclick = function () {
+    socket.emit("signUp", {
+      username: signDivUsername.value,
+      password: signDivPassword.value,
     });
+  };
+  socket.on("signInResponse", function (data) {
+    if (data.success) {
+      signDiv.style.display = "none";
+      gameDiv.style.display = "inline-block";
+    } else alert("Sign in unsuccessul.");
+  });
+  socket.on("signUpResponse", function (data) {
+    if (data.success) {
+      alert("Sign up successul.");
+    } else alert("Sign up unsuccessul.");
+  });
+  //game
+  let Img = {};
+  Img.player = new Image();
+  Img.player.src = "/client/img/player.png";
+  Img.bullet = new Image();
+  Img.bullet.src = "/client/img/bullet.png";
 
-    // Game
-    let ctx = document.getElementById("gameCanvas").getContext("2d");
-    ctx.font = "30px Arial";
+  Img.map = new Image();
+  Img.map.src = "/client/img/map.png";
 
-    socket.on("newPos", (data) => {
-      ctx.clearRect(0, 0, 500, 500);
-      for (let i = 0; i < data.player.length; i++) {
-        ctx.fillText(data.player[i].number, data.player[i].x, data.player[i].y);
+  let ctx = document.getElementById("ctx").getContext("2d");
+  let ctxUi = document.getElementById("ctx-ui").getContext("2d");
+  ctxUi.font = "30px Arial";
+
+  let Player = function (initPack) {
+    let self = {};
+    self.id = initPack.id;
+    self.number = initPack.number;
+    self.username = initPack.username;
+    self.x = initPack.x;
+    self.y = initPack.y;
+    self.hp = initPack.hp;
+    self.hpMax = initPack.hpMax;
+    self.score = initPack.score;
+    self.angle = initPack.angle;
+
+    self.draw = function () {
+      if (self.y + 10 < 125) {
+        self.y = self.y - 10;
       }
-      for (let i = 0; i < data.bullet.length; i++) {
-        ctx.fillRect(data.bullet[i].x - 5, data.bullet[i].y - 5, 10, 10);
-      }
-    });
+      console.log(self.y);
 
-    document.onkeydown = (event) => {
-      switch (event.keyCode) {
-        case 39:
-          socket.emit("keyPress", { input: "right", state: true });
-          break;
-        case 37:
-          socket.emit("keyPress", { input: "left", state: true });
-          break;
-        case 38:
-          socket.emit("keyPress", { input: "up", state: true });
-          break;
-        case 40:
-          socket.emit("keyPress", { input: "down", state: true });
-      }
-    };
+      let x = self.x - Player.list[selfId].x + WIDTH / 2;
+      let y = self.y - Player.list[selfId].y + HEIGHT / 2;
 
-    document.onkeyup = (event) => {
-      switch (event.keyCode) {
-        case 39:
-          socket.emit("keyPress", { input: "right", state: false });
-          break;
-        case 37:
-          socket.emit("keyPress", { input: "left", state: false });
-          break;
-        case 38:
-          socket.emit("keyPress", { input: "up", state: false });
-          break;
-        case 40:
-          socket.emit("keyPress", { input: "down", state: false });
-      }
+      let hpWidth = (30 * self.hp) / self.hpMax;
+      ctx.fillStyle = "yellow";
+      ctx.fillRect(x - hpWidth / 2, y - 40, hpWidth, 4);
+
+      let width = Img.player.width * 2;
+      let height = Img.player.height * 2;
+      // ctx.translate(self.x + width / 2, self.y + height / 2);
+      // ctx.rotate(self.angle);
+      // ctx.translate(-self.x + width / 2, -self.y + height / 2);
+      // console.log(self.angle);
+
+      ctx.drawImage(
+        Img.player,
+        0,
+        0,
+        Img.player.width,
+        Img.player.height,
+        x - width / 2,
+        y - height / 2,
+        width,
+        height
+      );
+
+      ctx.font = "bold 15px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(self.username + " | " + self.score, x, y - 50);
     };
 
-    document.onmousedown = (event) => {
-      socket.emit("keyPress", { input: "attack", state: true });
+    Player.list[self.id] = self;
+
+    return self;
+  };
+  Player.list = {};
+
+  let Bullet = function (initPack) {
+    let self = {};
+    self.id = initPack.id;
+    self.x = initPack.x;
+    self.y = initPack.y;
+
+    self.draw = function () {
+      let width = Img.bullet.width / 2;
+      let height = Img.bullet.height / 2;
+
+      let x = self.x - Player.list[selfId].x + WIDTH / 2;
+      let y = self.y - Player.list[selfId].y + HEIGHT / 2;
+
+      ctx.drawImage(
+        Img.bullet,
+        0,
+        0,
+        Img.bullet.width,
+        Img.bullet.height,
+        x - width / 2,
+        y - height / 2,
+        width,
+        height
+      );
     };
-    document.onmouseup = (event) => {
-      socket.emit("keyPress", { input: "attack", state: false });
-    };
-    document.onmousemove = (event) => {
-      let x = -250 + event.clientX - 3;
-      let y = -250 + event.clientY - 3;
-      let angle = (Math.atan2(y, x) / Math.PI) * 180;
-      socket.emit("keyPress", { input: "mouseAngle", state: angle });
-    };
-  </script>
-</html>
+
+    Bullet.list[self.id] = self;
+    return self;
+  };
+  Bullet.list = {};
+
+  let selfId = null;
+
+  socket.on("init", function (data) {
+    if (data.selfId) selfId = data.selfId;
+    //{ player : [{id:123,number:'1',x:0,y:0},{id:1,number:'2',x:0,y:0}], bullet: []}
+    for (let i = 0; i < data.player.length; i++) {
+      new Player(data.player[i]);
+    }
+    for (let i = 0; i < data.bullet.length; i++) {
+      new Bullet(data.bullet[i]);
+    }
+  });
+
+  socket.on("update", function (data) {
+    //{ player : [{id:123,x:0,y:0},{id:1,x:0,y:0}], bullet: []}
+    for (let i = 0; i < data.player.length; i++) {
+      let pack = data.player[i];
+      let p = Player.list[pack.id];
+      if (p) {
+        if (pack.x !== undefined) p.x = pack.x;
+        if (pack.y !== undefined) p.y = pack.y;
+        if (pack.hp !== undefined) p.hp = pack.hp;
+        if (pack.score !== undefined) p.score = pack.score;
+      }
+    }
+    for (let i = 0; i < data.bullet.length; i++) {
+      let pack = data.bullet[i];
+      let b = Bullet.list[data.bullet[i].id];
+      if (b) {
+        if (pack.x !== undefined) b.x = pack.x;
+        if (pack.y !== undefined) b.y = pack.y;
+      }
+    }
+  });
+
+  socket.on("remove", function (data) {
+    //{player:[12323],bullet:[12323,123123]}
+    for (let i = 0; i < data.player.length; i++) {
+      delete Player.list[data.player[i]];
+    }
+    for (let i = 0; i < data.bullet.length; i++) {
+      delete Bullet.list[data.bullet[i]];
+    }
+  });
+
+  setInterval(function () {
+    if (!selfId) return;
+    ctx.clearRect(0, 0, 500, 500);
+    drawMap();
+    drawScore();
+    for (let i in Player.list) Player.list[i].draw();
+    for (let i in Bullet.list) Bullet.list[i].draw();
+  }, 40);
+
+  let drawMap = function () {
+    let player = Player.list[selfId];
+    let x = WIDTH / 2 - player.x;
+    let y = HEIGHT / 2 - player.y;
+    ctx.msImageSmoothingEnabled = false;
+    ctx.mozImageSmoothingEnabled = false;
+    ctx.webkitImageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = false;
+
+    ctx.drawImage(Img.map, x, y, 2000, 2000);
+  };
+
+  let drawScore = function () {
+    if (lastScore === Player.list[selfId].score) return;
+    lastScore = Player.list[selfId].score;
+    ctxUi.clearRect(0, 0, 500, 500);
+    ctxUi.fillStyle = "white";
+    ctxUi.fillText(Player.list[selfId].score, 0, 30);
+  };
+  let lastScore = null;
+
+  document.onkeydown = function (event) {
+    switch (event.keyCode) {
+      case 38: // ^
+        socket.emit("keyPress", { inputId: "up", state: true });
+        break;
+      case 37: // >
+        socket.emit("keyPress", { inputId: "left", state: true });
+        break;
+      case 39: // <
+        socket.emit("keyPress", { inputId: "right", state: true });
+        break;
+      case 40: // V
+        socket.emit("keyPress", { inputId: "down", state: true });
+        break;
+    }
+  };
+  document.onkeyup = function (event) {
+    switch (event.keyCode) {
+      case 38: // ^
+        socket.emit("keyPress", { inputId: "up", state: false });
+        break;
+      case 37: // >
+        socket.emit("keyPress", { inputId: "left", state: false });
+        break;
+      case 39: // <
+        socket.emit("keyPress", { inputId: "right", state: false });
+        break;
+      case 40: // V
+        socket.emit("keyPress", { inputId: "down", state: false });
+        break;
+    }
+  };
+
+  document.onmousedown = function (event) {
+    socket.emit("keyPress", { inputId: "attack", state: true });
+  };
+  document.onmouseup = function (event) {
+    socket.emit("keyPress", { inputId: "attack", state: false });
+  };
+  document.onmousemove = function (event) {
+    let x = -250 + event.clientX - 8;
+    let y = -250 + event.clientY - 8;
+    let angle = (Math.atan2(y, x) / Math.PI) * 180;
+    socket.emit("keyPress", { inputId: "mouseAngle", state: angle });
+  };
+
+  document.oncontextmenu = function (event) {
+    event.preventDefault();
+  };
+</script>
